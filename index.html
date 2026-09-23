@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>歩くリズム（試作）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF1F5; --surface:#FFFFFF; --ink:#1D2733; --muted:#5A6675;
+  --brass:#C8901C; --brass-ink:#2A1D05; --teal:#2F7F6E; --line:#D5DBE3;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16202B; --surface:#1F2B38; --ink:#EEF1F5; --muted:#9AA7B6;
+    --brass:#E8B53A; --brass-ink:#2A1D05; --teal:#6FC2AE; --line:#2E3D4D;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16202B; --surface:#1F2B38; --ink:#EEF1F5; --muted:#9AA7B6;
+  --brass:#E8B53A; --brass-ink:#2A1D05; --teal:#6FC2AE; --line:#2E3D4D;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  font-weight:500; line-height:1.6;
+}
+main{max-width:520px; margin:0 auto; padding:20px 18px 40px}
+h1{font-size:1.1rem; font-weight:700; margin:0 0 18px; color:var(--muted)}
+.stage{display:flex; flex-direction:column; align-items:center; gap:14px; margin-bottom:28px}
+#go{
+  width:min(64vw,240px); aspect-ratio:1; border-radius:50%; border:0;
+  background:var(--brass); color:var(--brass-ink);
+  font:inherit; font-size:2rem; font-weight:900; letter-spacing:.04em;
+  cursor:pointer; box-shadow:0 0 0 0 var(--teal);
+  transition:background .2s, box-shadow .09s;
+  -webkit-tap-highlight-color:transparent;
+}
+#go.on{background:var(--surface); color:var(--ink); box-shadow:0 0 0 6px var(--teal)}
+#go.beat{box-shadow:0 0 0 14px var(--teal)}
+#go.beat-strong{box-shadow:0 0 0 22px var(--teal)}
+#go.steady{box-shadow:0 0 0 10px var(--teal)}
+#go:focus-visible{outline:3px solid var(--ink); outline-offset:28px}
+#now{font-size:1rem; color:var(--muted); min-height:1.6em; text-align:center}
+fieldset{border:0; margin:0 0 22px; padding:0}
+legend{font-weight:700; font-size:.95rem; margin-bottom:8px; padding:0}
+.opt{
+  display:flex; gap:12px; align-items:flex-start;
+  background:var(--surface); border:2px solid var(--line); border-radius:14px;
+  padding:12px 14px; margin-bottom:8px; cursor:pointer;
+}
+.opt input{margin-top:6px; width:20px; height:20px; accent-color:var(--teal); flex:none}
+.opt b{display:block; font-size:1.05rem}
+.opt span{display:block; font-size:.88rem; color:var(--muted)}
+.opt:has(input:checked){border-color:var(--teal)}
+.row{
+  background:var(--surface); border:2px solid var(--line); border-radius:14px;
+  padding:14px; margin-bottom:12px;
+}
+.row h2{font-size:.95rem; margin:0 0 10px}
+.tempo{display:flex; align-items:center; justify-content:center; gap:18px}
+.tempo button{
+  width:52px; height:52px; border-radius:50%; border:2px solid var(--line);
+  background:var(--bg); color:var(--ink); font:inherit; font-size:1.6rem; font-weight:700; cursor:pointer;
+}
+#bpm{font-size:2.2rem; font-weight:900; min-width:3ch; text-align:center; font-variant-numeric:tabular-nums}
+.unit{font-size:.85rem; color:var(--muted); text-align:center; margin-top:2px}
+#tap{
+  width:100%; margin-top:14px; padding:14px; border-radius:12px;
+  border:2px dashed var(--teal); background:transparent; color:var(--ink);
+  font:inherit; font-size:1rem; font-weight:700; cursor:pointer;
+}
+#tapinfo{font-size:.85rem; color:var(--muted); text-align:center; min-height:1.4em; margin-top:6px}
+.seg{display:grid; grid-template-columns:repeat(3,1fr); gap:6px}
+.seg label{position:relative}
+.seg input{position:absolute; opacity:0; inset:0}
+.seg span{
+  display:block; text-align:center; padding:12px 4px; border-radius:10px;
+  border:2px solid var(--line); background:var(--bg); font-weight:700; cursor:pointer;
+}
+.seg input:checked + span{border-color:var(--teal); background:var(--surface)}
+.seg input:focus-visible + span{outline:3px solid var(--ink); outline-offset:2px}
+.hint{font-size:.85rem; color:var(--muted); margin:8px 0 0}
+input[type=range]{width:100%; accent-color:var(--teal); height:28px}
+.note{font-size:.85rem; color:var(--muted); margin-top:18px}
+.hide{display:none}
+@media (prefers-reduced-motion: reduce){ #go{transition:none} }
+</style>
+</head>
+<body>
+<main>
+  <h1>歩くリズム（試作）</h1>
+
+  <div class="stage">
+    <button id="go" aria-pressed="false">スタート</button>
+    <div id="now" aria-live="polite"></div>
+  </div>
+
+  <fieldset>
+    <legend>歩きながら（スピーカーで）</legend>
+    <label class="opt"><input type="radio" name="p" value="click"><div><b>基本クリック</b><span>一定のカチカチ。比べるときの基準</span></div></label>
+    <label class="opt"><input type="radio" name="p" value="accent"><div><b>強弱クリック</b><span>4歩に1回、高く強く鳴る</span></div></label>
+    <label class="opt"><input type="radio" name="p" value="marcato"><div><b>タンゴ・マルカート</b><span>バンドネオンとベースが毎歩ザッと刻む。1歩目と3歩目が強い</span></div></label>
+    <label class="opt"><input type="radio" name="p" value="habanera"><div><b>タンゴ 3-3-2</b><span>跳ねるリズム。足は小さなシャッに合わせる</span></div></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>座って聴く</legend>
+    <label class="opt"><input type="radio" name="p" value="g40"><div><b>40Hzクリック</b><span>研究で使われた方式。スピーカーでも可</span></div></label>
+    <label class="opt"><input type="radio" name="p" value="bin40"><div><b>40Hzバイノーラル</b><span>ヘッドホン必須。左200Hz・右240Hz</span></div></label>
+  </fieldset>
+
+  <div class="row walkonly">
+    <h2>テンポ</h2>
+    <div class="tempo">
+      <button id="minus" aria-label="テンポを下げる">−</button>
+      <div><div id="bpm">100</div><div class="unit">歩／分</div></div>
+      <button id="plus" aria-label="テンポを上げる">＋</button>
+    </div>
+    <button id="tap">歩くのに合わせて一歩ごとにタップ</button>
+    <div id="tapinfo"></div>
+  </div>
+
+  <div class="row walkonly">
+    <h2>揺れ</h2>
+    <div class="seg" role="radiogroup" aria-label="テンポの揺れ">
+      <label><input type="radio" name="sway" value="0"><span>一定</span></label>
+      <label><input type="radio" name="sway" value="1"><span>少し</span></label>
+      <label><input type="radio" name="sway" value="2"><span>しっかり</span></label>
+    </div>
+    <p class="hint">人が演奏するように、テンポが少しずつ揺れます。8小節ごとにふっと溜めが入ります</p>
+  </div>
+
+  <div class="row">
+    <h2>音量</h2>
+    <input type="range" id="vol" min="0" max="1" step="0.01" value="0.7" aria-label="音量">
+  </div>
+
+  <p class="note">最初の数回は、誰かが横にいる時に試してください。40Hzは音量を小さめから始めてください。</p>
+</main>
+
+<script>
+(() => {
+  // chord progression: Am - Dm - E7 - Am (one bar each)
+  const PROG = [
+    {chord:[220.00,261.63,329.63], root:110.00, fifth:82.41},
+    {chord:[220.00,293.66,349.23], root:73.42,  fifth:110.00},
+    {chord:[246.94,293.66,415.30], root:82.41,  fifth:123.47},
+    {chord:[220.00,261.63,329.63], root:110.00, fifth:82.41}
+  ];
+
+  const PATTERNS = {
+    click:   {walk:true, label:'基本クリック'},
+    accent:  {walk:true, label:'強弱クリック'},
+    marcato: {walk:true, label:'タンゴ・マルカート'},
+    habanera:{walk:true, label:'タンゴ 3-3-2'},
+    g40:     {walk:false, label:'40Hzクリック'},
+    bin40:   {walk:false, label:'40Hzバイノーラル'}
+  };
+
+  const $ = id => document.getElementById(id);
+  const go = $('go'), now = $('now'), bpmEl = $('bpm'), volEl = $('vol');
+
+  const load = (k, d) => { try { const v = localStorage.getItem('wr_'+k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } };
+  const save = (k, v) => { try { localStorage.setItem('wr_'+k, JSON.stringify(v)); } catch(e){} };
+  let pattern = load('pattern','click'); if(!PATTERNS[pattern]) pattern = 'click';
+  let bpm = load('bpm',100);
+  let vol = load('vol',0.7);
+  let swayLevel = load('sway',0); if(![0,1,2].includes(swayLevel)) swayLevel = 0;
+
+  let ctx, master, comp, noiseBuf, clickBuf;
+  let running = false, timerId = null, nextTime = 0, idx = 0, mult = 1;
+  let cont = null, visQ = [], wakeLock = null;
+
+  function ensureCtx(){
+    if(ctx) return;
+    try { if(navigator.audioSession) navigator.audioSession.type = 'playback'; } catch(e){}
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -18; comp.ratio.value = 4;
+    master = ctx.createGain();
+    master.gain.value = vol*vol;
+    master.connect(comp); comp.connect(ctx.destination);
+
+    const sr = ctx.sampleRate;
+    noiseBuf = ctx.createBuffer(1, Math.floor(sr*0.05), sr);
+    const nd = noiseBuf.getChannelData(0);
+    for(let i=0;i<nd.length;i++) nd[i] = Math.random()*2-1;
+
+    clickBuf = ctx.createBuffer(1, sr, sr);
+    const cd = clickBuf.getChannelData(0);
+    const pipLen = Math.floor(sr*0.001);
+    for(let k=0;k<40;k++){
+      const s = Math.round(k*sr/40);
+      for(let i=0;i<pipLen;i++){
+        const w = 0.5 - 0.5*Math.cos(2*Math.PI*i/(pipLen-1));
+        cd[s+i] = 0.8*w*Math.sin(2*Math.PI*10000*i/sr);
+      }
+    }
+  }
+
+  // ---- instruments ----
+  function env(g, t, peak, attack, dur){
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t+attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  }
+
+  function tone(t, freq, dur, peak){
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = freq;
+    env(g, t, peak, 0.004, dur);
+    o.connect(g); g.connect(master);
+    o.start(t); o.stop(t+dur+0.02);
+  }
+
+  function noise(t, peak, dur, freq, type){
+    const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+    const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(peak, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    n.connect(f); f.connect(g); g.connect(master);
+    n.start(t); n.stop(t+dur+0.01);
+  }
+
+  // reedy bellows chord: detuned saws through a nasal formant
+  function bandoneon(t, freqs, peak, dur){
+    const out = ctx.createGain();
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.exponentialRampToValueAtTime(peak, t+0.012);
+    out.gain.setValueAtTime(peak*0.8, t+dur*0.45);
+    out.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    const hp = ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=180;
+    const pk = ctx.createBiquadFilter(); pk.type='peaking'; pk.frequency.value=1400; pk.Q.value=1.2; pk.gain.value=9;
+    const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=3400;
+    hp.connect(pk); pk.connect(lp); lp.connect(out); out.connect(master);
+    for(const f of freqs){
+      for(const d of [-7, 7]){
+        const o = ctx.createOscillator(); o.type='sawtooth';
+        o.frequency.value = f; o.detune.value = d;
+        const og = ctx.createGain(); og.gain.value = 0.1;
+        o.connect(og); og.connect(hp);
+        o.start(t); o.stop(t+dur+0.03);
+      }
+    }
+  }
+
+  // plucked double bass, with harmonics so phone speakers carry it
+  function pizz(t, f, peak){
+    const g = ctx.createGain();
+    env(g, t, peak, 0.003, 0.32);
+    const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=750; lp.Q.value=2;
+    const s = ctx.createOscillator(); s.type='sawtooth'; s.frequency.value=f*2;
+    const o = ctx.createOscillator(); o.type='triangle'; o.frequency.value=f;
+    s.connect(lp); o.connect(lp); lp.connect(g); g.connect(master);
+    [s,o].forEach(x => { x.start(t); x.stop(t+0.36); });
+    noise(t, peak*0.5, 0.012, 2500, 'highpass'); // finger snap so the onset is sharp
+  }
+
+  // ---- what plays on each eighth (8 per bar = 4 steps) ----
+  function playEighth(pos, bar, t){
+    const c = PROG[bar % PROG.length];
+    switch(pattern){
+      case 'click':
+        if(pos%2===0) tone(t,1000,0.06,0.8);
+        break;
+      case 'accent':
+        if(pos===0) tone(t,1600,0.08,1.0);
+        else if(pos%2===0) tone(t,1000,0.06,0.8);
+        break;
+      case 'marcato':
+        if(pos%2===0){
+          const beat = pos/2, strong = beat===0 || beat===2;
+          bandoneon(t, c.chord, strong ? 0.55 : 0.32, strong ? 0.24 : 0.15);
+          pizz(t, beat<2 ? c.root : c.fifth, strong ? 0.9 : 0.5);
+        }
+        break;
+      case 'habanera':
+        if(pos===0){ bandoneon(t, c.chord, 0.55, 0.26); pizz(t, c.root, 0.9); }
+        if(pos===3){ bandoneon(t, c.chord, 0.4, 0.18); pizz(t, c.fifth, 0.65); }
+        if(pos===6){ bandoneon(t, c.chord, 0.4, 0.18); pizz(t, c.root, 0.65); }
+        if(pos%2===0) noise(t, 0.35, 0.05, 3500, 'bandpass'); // soft step pulse
+        break;
+    }
+  }
+
+  // ---- human-like sway: layered random walk (1/f-ish) + phrase-end hold ----
+  const gens = [0,0,0,0];
+  function swayMult(beatIdx){
+    if(swayLevel === 0) return 1;
+    for(let k=0;k<4;k++) if(beatIdx % (1<<k) === 0) gens[k] = Math.random()*2-1;
+    const v = gens.reduce((a,b)=>a+b,0)/4;
+    const amp = [0,0.05,0.1][swayLevel];
+    let m = 1 + amp*v;
+    const inPhrase = beatIdx % 32; // 8 bars
+    if(inPhrase >= 30) m += [0,0.08,0.18][swayLevel] * (inPhrase-29)/2;
+    return m;
+  }
+
+  function scheduler(){
+    while(nextTime < ctx.currentTime + 0.12){
+      const pos = idx % 8, bar = Math.floor(idx/8);
+      if(pos % 2 === 0){
+        mult = swayMult(idx/2);
+        visQ.push({t:nextTime, strong:pos===0});
+      }
+      playEighth(pos, bar, nextTime);
+      nextTime += (60/bpm/2) * mult;
+      idx++;
+    }
+  }
+
+  function startContinuous(){
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(1, ctx.currentTime+1);
+    g.connect(master);
+    const nodes = [];
+    if(pattern === 'g40'){
+      const s = ctx.createBufferSource(); s.buffer = clickBuf; s.loop = true;
+      s.connect(g); s.start(); nodes.push(s);
+    } else {
+      const merger = ctx.createChannelMerger(2);
+      [[200,0],[240,1]].forEach(([f,ch]) => {
+        const o = ctx.createOscillator(); o.type='sine'; o.frequency.value=f;
+        const og = ctx.createGain(); og.gain.value = 0.35;
+        o.connect(og); og.connect(merger, 0, ch); o.start(); nodes.push(o);
+      });
+      merger.connect(g);
+    }
+    cont = {g, nodes};
+  }
+
+  function stopContinuous(){
+    if(!cont) return;
+    const t = ctx.currentTime;
+    cont.g.gain.cancelScheduledValues(t);
+    cont.g.gain.setValueAtTime(Math.max(cont.g.gain.value,0.0001), t);
+    cont.g.gain.exponentialRampToValueAtTime(0.0001, t+0.15);
+    cont.nodes.forEach(n => { try{ n.stop(t+0.2); }catch(e){} });
+    cont = null;
+  }
+
+  function startSound(){
+    if(PATTERNS[pattern].walk){
+      idx = 0; mult = 1; nextTime = ctx.currentTime + 0.08; visQ = [];
+      scheduler();
+      timerId = setInterval(scheduler, 25);
+      go.classList.remove('steady');
+    } else {
+      startContinuous();
+      go.classList.add('steady'); // no flashing at 40Hz
+    }
+  }
+
+  function stopSound(){
+    clearInterval(timerId); timerId = null;
+    stopContinuous();
+    visQ = [];
+    go.classList.remove('beat','beat-strong','steady');
+  }
+
+  async function requestWake(){
+    try { if('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
+  }
+  document.addEventListener('visibilitychange', () => {
+    if(running && document.visibilityState === 'visible') requestWake();
+  });
+
+  async function start(){
+    ensureCtx();
+    if(ctx.state !== 'running') { try { await ctx.resume(); } catch(e){} }
+    running = true;
+    go.textContent = 'ストップ'; go.classList.add('on'); go.setAttribute('aria-pressed','true');
+    startSound(); requestWake(); updateNow();
+  }
+
+  function stop(){
+    running = false;
+    stopSound();
+    go.textContent = 'スタート'; go.classList.remove('on'); go.setAttribute('aria-pressed','false');
+    try { wakeLock && wakeLock.release(); } catch(e){}
+    wakeLock = null;
+    updateNow();
+  }
+
+  go.addEventListener('click', () => running ? stop() : start());
+
+  let flashTimer = null;
+  function flash(strong){
+    go.classList.remove('beat','beat-strong');
+    go.classList.add(strong ? 'beat-strong' : 'beat');
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => go.classList.remove('beat','beat-strong'), 90);
+  }
+  (function frame(){
+    if(ctx && running){
+      while(visQ.length && visQ[0].t <= ctx.currentTime){ flash(visQ.shift().strong); }
+    }
+    requestAnimationFrame(frame);
+  })();
+
+  // ---- controls ----
+  const SWAY_LABEL = ['一定','少し揺れ','しっかり揺れ'];
+  function updateNow(){
+    const pat = PATTERNS[pattern];
+    now.textContent = running
+      ? (pat.walk ? `${pat.label}・${bpm}歩／分・${SWAY_LABEL[swayLevel]}` : pat.label + (pattern==='bin40' ? '（ヘッドホンで）' : ''))
+      : pat.label;
+    document.querySelectorAll('.walkonly').forEach(el => el.classList.toggle('hide', !pat.walk));
+  }
+
+  document.querySelectorAll('input[name=p]').forEach(r => {
+    r.checked = r.value === pattern;
+    r.addEventListener('change', () => {
+      pattern = r.value; save('pattern', pattern);
+      if(running){ stopSound(); startSound(); }
+      updateNow();
+    });
+  });
+
+  document.querySelectorAll('input[name=sway]').forEach(r => {
+    r.checked = parseInt(r.value,10) === swayLevel;
+    r.addEventListener('change', () => {
+      swayLevel = parseInt(r.value,10); save('sway', swayLevel); updateNow();
+    });
+  });
+
+  function setBpm(v){
+    bpm = Math.max(40, Math.min(160, Math.round(v)));
+    bpmEl.textContent = bpm; save('bpm', bpm); updateNow();
+  }
+  $('minus').addEventListener('click', () => setBpm(bpm-2));
+  $('plus').addEventListener('click', () => setBpm(bpm+2));
+
+  let taps = [];
+  $('tap').addEventListener('click', () => {
+    const t = performance.now();
+    if(taps.length && t - taps[taps.length-1] > 2500) taps = [];
+    taps.push(t);
+    if(taps.length > 9) taps.shift();
+    if(taps.length >= 4){
+      const iv = taps.slice(1).map((x,i) => x - taps[i]).sort((a,b)=>a-b);
+      setBpm(60000/iv[Math.floor(iv.length/2)]);
+      $('tapinfo').textContent = `${taps.length}回タップ → ${bpm}歩／分に設定`;
+    } else {
+      $('tapinfo').textContent = `あと${4-taps.length}回タップ`;
+    }
+  });
+
+  volEl.value = vol;
+  volEl.addEventListener('input', () => {
+    vol = parseFloat(volEl.value); save('vol', vol);
+    if(master) master.gain.setTargetAtTime(vol*vol, ctx.currentTime, 0.02);
+  });
+
+  bpmEl.textContent = bpm;
+  updateNow();
+})();
+</script>
+</body>
+</html>
