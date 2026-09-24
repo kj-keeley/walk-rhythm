@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>歩くリズム（試作）</title>
+<title>Walking Rhythm (Prototype)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
@@ -96,54 +96,54 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
 </head>
 <body>
 <main>
-  <h1>歩くリズム（試作）</h1>
+  <h1>Walking Rhythm (Prototype)</h1>
 
   <div class="stage">
-    <button id="go" aria-pressed="false">スタート</button>
+    <button id="go" aria-pressed="false">Start</button>
     <div id="now" aria-live="polite"></div>
   </div>
 
   <fieldset>
-    <legend>歩きながら（スピーカーで）</legend>
-    <label class="opt"><input type="radio" name="p" value="click"><div><b>基本クリック</b><span>一定のカチカチ。比べるときの基準</span></div></label>
-    <label class="opt"><input type="radio" name="p" value="accent"><div><b>強弱クリック</b><span>4歩に1回、高く強く鳴る</span></div></label>
-    <label class="opt"><input type="radio" name="p" value="marcato"><div><b>タンゴ・マルカート</b><span>バンドネオンとベースが毎歩ザッと刻む。1歩目と3歩目が強い</span></div></label>
-    <label class="opt"><input type="radio" name="p" value="habanera"><div><b>タンゴ 3-3-2</b><span>跳ねるリズム。足は小さなシャッに合わせる</span></div></label>
+    <legend>For walking (use the speaker)</legend>
+    <label class="opt"><input type="radio" name="p" value="click"><div><b>Basic click</b><span>A steady click to use as a baseline</span></div></label>
+    <label class="opt"><input type="radio" name="p" value="accent"><div><b>Accented click</b><span>A higher, stronger sound every four steps</span></div></label>
+    <label class="opt"><input type="radio" name="p" value="marcato"><div><b>Tango marcato</b><span>Bandoneon and bass mark every step. Steps 1 and 3 are stronger.</span></div></label>
+    <label class="opt"><input type="radio" name="p" value="habanera"><div><b>Tango 3-3-2</b><span>A bouncing rhythm. Step to the soft swishing sound.</span></div></label>
   </fieldset>
 
   <fieldset>
-    <legend>座って聴く</legend>
-    <label class="opt"><input type="radio" name="p" value="g40"><div><b>40Hzクリック</b><span>研究で使われた方式。スピーカーでも可</span></div></label>
-    <label class="opt"><input type="radio" name="p" value="bin40"><div><b>40Hzバイノーラル</b><span>ヘッドホン必須。左200Hz・右240Hz</span></div></label>
+    <legend>For listening while seated</legend>
+    <label class="opt"><input type="radio" name="p" value="g40"><div><b>40 Hz click</b><span>A method used in research. Speakers are fine.</span></div></label>
+    <label class="opt"><input type="radio" name="p" value="bin40"><div><b>40 Hz binaural</b><span>Headphones required: 200 Hz left, 240 Hz right</span></div></label>
   </fieldset>
 
   <div class="row walkonly">
-    <h2>テンポ</h2>
+    <h2>Tempo</h2>
     <div class="tempo">
-      <button id="minus" aria-label="テンポを下げる">−</button>
-      <div><div id="bpm">100</div><div class="unit">歩／分</div></div>
-      <button id="plus" aria-label="テンポを上げる">＋</button>
+      <button id="minus" aria-label="Decrease tempo">−</button>
+      <div><div id="bpm">100</div><div class="unit">steps/min</div></div>
+      <button id="plus" aria-label="Increase tempo">＋</button>
     </div>
-    <button id="tap">歩くのに合わせて一歩ごとにタップ</button>
+    <button id="tap">Tap once for each step as you walk</button>
     <div id="tapinfo"></div>
   </div>
 
   <div class="row walkonly">
-    <h2>揺れ</h2>
-    <div class="seg" role="radiogroup" aria-label="テンポの揺れ">
-      <label><input type="radio" name="sway" value="0"><span>一定</span></label>
-      <label><input type="radio" name="sway" value="1"><span>少し</span></label>
-      <label><input type="radio" name="sway" value="2"><span>しっかり</span></label>
+    <h2>Tempo variation</h2>
+    <div class="seg" role="radiogroup" aria-label="Tempo variation">
+      <label><input type="radio" name="sway" value="0"><span>Steady</span></label>
+      <label><input type="radio" name="sway" value="1"><span>Gentle</span></label>
+      <label><input type="radio" name="sway" value="2"><span>Strong</span></label>
     </div>
-    <p class="hint">人が演奏するように、テンポが少しずつ揺れます。8小節ごとにふっと溜めが入ります</p>
+    <p class="hint">The tempo shifts gently, like a human performance, with a brief pause every eight bars.</p>
   </div>
 
   <div class="row">
-    <h2>音量</h2>
-    <input type="range" id="vol" min="0" max="1" step="0.01" value="0.7" aria-label="音量">
+    <h2>Volume</h2>
+    <input type="range" id="vol" min="0" max="1" step="0.01" value="0.7" aria-label="Volume">
   </div>
 
-  <p class="note">最初の数回は、誰かが横にいる時に試してください。40Hzは音量を小さめから始めてください。</p>
+  <p class="note">For the first few uses, have someone nearby. Start 40 Hz modes at a low volume.</p>
 </main>
 
 <script>
@@ -157,12 +157,12 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
   ];
 
   const PATTERNS = {
-    click:   {walk:true, label:'基本クリック'},
-    accent:  {walk:true, label:'強弱クリック'},
-    marcato: {walk:true, label:'タンゴ・マルカート'},
-    habanera:{walk:true, label:'タンゴ 3-3-2'},
-    g40:     {walk:false, label:'40Hzクリック'},
-    bin40:   {walk:false, label:'40Hzバイノーラル'}
+    click:   {walk:true, label:'Basic click'},
+    accent:  {walk:true, label:'Accented click'},
+    marcato: {walk:true, label:'Tango marcato'},
+    habanera:{walk:true, label:'Tango 3-3-2'},
+    g40:     {walk:false, label:'40 Hz click'},
+    bin40:   {walk:false, label:'40 Hz binaural'}
   };
 
   const $ = id => document.getElementById(id);
@@ -379,14 +379,14 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
     ensureCtx();
     if(ctx.state !== 'running') { try { await ctx.resume(); } catch(e){} }
     running = true;
-    go.textContent = 'ストップ'; go.classList.add('on'); go.setAttribute('aria-pressed','true');
+    go.textContent = 'Stop'; go.classList.add('on'); go.setAttribute('aria-pressed','true');
     startSound(); requestWake(); updateNow();
   }
 
   function stop(){
     running = false;
     stopSound();
-    go.textContent = 'スタート'; go.classList.remove('on'); go.setAttribute('aria-pressed','false');
+    go.textContent = 'Start'; go.classList.remove('on'); go.setAttribute('aria-pressed','false');
     try { wakeLock && wakeLock.release(); } catch(e){}
     wakeLock = null;
     updateNow();
@@ -409,11 +409,11 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
   })();
 
   // ---- controls ----
-  const SWAY_LABEL = ['一定','少し揺れ','しっかり揺れ'];
+  const SWAY_LABEL = ['steady','gentle variation','strong variation'];
   function updateNow(){
     const pat = PATTERNS[pattern];
     now.textContent = running
-      ? (pat.walk ? `${pat.label}・${bpm}歩／分・${SWAY_LABEL[swayLevel]}` : pat.label + (pattern==='bin40' ? '（ヘッドホンで）' : ''))
+      ? (pat.walk ? `${pat.label} · ${bpm} steps/min · ${SWAY_LABEL[swayLevel]}` : pat.label + (pattern==='bin40' ? ' (headphones)' : ''))
       : pat.label;
     document.querySelectorAll('.walkonly').forEach(el => el.classList.toggle('hide', !pat.walk));
   }
@@ -450,9 +450,9 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
     if(taps.length >= 4){
       const iv = taps.slice(1).map((x,i) => x - taps[i]).sort((a,b)=>a-b);
       setBpm(60000/iv[Math.floor(iv.length/2)]);
-      $('tapinfo').textContent = `${taps.length}回タップ → ${bpm}歩／分に設定`;
+      $('tapinfo').textContent = `${taps.length} taps → set to ${bpm} steps/min`;
     } else {
-      $('tapinfo').textContent = `あと${4-taps.length}回タップ`;
+      $('tapinfo').textContent = `${4-taps.length} more taps`;
     }
   });
 
