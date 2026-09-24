@@ -32,23 +32,26 @@ body{
   font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
   font-weight:500; line-height:1.6;
 }
-main{max-width:520px; min-height:100vh; min-height:100dvh; margin:0 auto; padding:20px 18px 40px; position:relative}
-h1{font-size:1.1rem; font-weight:700; margin:0 0 18px; color:var(--muted)}
+main{max-width:520px; min-height:100vh; min-height:100dvh; margin:0 auto; padding:16px 18px 20px; position:relative}
+h1{font-size:1.1rem; font-weight:700; margin:0 0 12px; color:var(--muted)}
 #settingsTrigger{
-  position:absolute; top:16px; right:18px; width:44px; height:44px;
+  position:absolute; top:12px; right:18px; width:44px; height:44px;
   border:0; background:transparent; opacity:0; cursor:default;
   -webkit-touch-callout:none; -webkit-user-select:none; user-select:none;
   touch-action:manipulation;
 }
 #settingsTrigger:focus-visible{opacity:1; outline:2px solid var(--ink)}
-#home .stage{padding-top:24px}
+#home .stage{padding-top:8px; gap:10px; margin-bottom:0}
+#soundChoice{display:flex; align-items:center; gap:12px; max-width:360px; margin:0 auto 12px; font-weight:700}
+#soundPicker{flex:1; min-width:0; min-height:48px; padding:8px 10px; border:2px solid var(--line); border-radius:12px; background:var(--surface); color:var(--ink); font:inherit; font-size:1rem}
+#soundPicker:focus-visible{outline:3px solid var(--teal); outline-offset:2px}
 #settingsHeader{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px}
 #settingsHeader h2{margin:0; font-size:1.3rem}
 #back{border:2px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink); font:inherit; font-weight:700; padding:10px 16px; cursor:pointer}
 [hidden]{display:none !important}
 .stage{display:flex; flex-direction:column; align-items:center; gap:14px; margin-bottom:28px}
 #go{
-  width:min(64vw,240px); aspect-ratio:1; border-radius:50%; border:0;
+  width:min(64vw,42vh,220px); aspect-ratio:1; border-radius:50%; border:0;
   background:var(--brass); color:var(--brass-ink);
   font:inherit; font-size:2rem; font-weight:900; letter-spacing:.04em;
   cursor:pointer; box-shadow:0 0 0 0 var(--teal);
@@ -61,17 +64,6 @@ h1{font-size:1.1rem; font-weight:700; margin:0 0 18px; color:var(--muted)}
 #go.steady{box-shadow:0 0 0 10px var(--teal)}
 #go:focus-visible{outline:3px solid var(--ink); outline-offset:28px}
 #now{font-size:1rem; color:var(--muted); min-height:1.6em; text-align:center}
-fieldset{border:0; margin:0 0 22px; padding:0}
-legend{font-weight:700; font-size:.95rem; margin-bottom:8px; padding:0}
-.opt{
-  display:flex; gap:12px; align-items:flex-start;
-  background:var(--surface); border:2px solid var(--line); border-radius:14px;
-  padding:12px 14px; margin-bottom:8px; cursor:pointer;
-}
-.opt input{margin-top:6px; width:20px; height:20px; accent-color:var(--teal); flex:none}
-.opt b{display:block; font-size:1.05rem}
-.opt span{display:block; font-size:.88rem; color:var(--muted)}
-.opt:has(input:checked){border-color:var(--teal)}
 .row{
   background:var(--surface); border:2px solid var(--line); border-radius:14px;
   padding:14px; margin-bottom:12px;
@@ -112,6 +104,14 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
   <button id="settingsTrigger" type="button" aria-label="Hold to open settings" title="Hold to open settings"></button>
 
   <section id="home">
+    <label id="soundChoice" for="soundPicker">Sound
+      <select id="soundPicker">
+        <option value="click">Basic click</option>
+        <option value="accent">Accented click</option>
+        <option value="g40">40 Hz click</option>
+        <option value="bin40">40 Hz binaural (headphones)</option>
+      </select>
+    </label>
     <div class="stage">
       <button id="go" aria-pressed="false">Start</button>
       <div id="now" aria-live="polite"></div>
@@ -123,18 +123,6 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
     <h2>Settings</h2>
     <button id="back" type="button">Back</button>
   </div>
-
-  <fieldset>
-    <legend>For walking (use the speaker)</legend>
-    <label class="opt"><input type="radio" name="p" value="click"><div><b>Basic click</b><span>A steady click to use as a baseline</span></div></label>
-    <label class="opt"><input type="radio" name="p" value="accent"><div><b>Accented click</b><span>A higher, stronger sound every four steps</span></div></label>
-  </fieldset>
-
-  <fieldset>
-    <legend>For listening while seated</legend>
-    <label class="opt"><input type="radio" name="p" value="g40"><div><b>40 Hz click</b><span>A method used in research. Speakers are fine.</span></div></label>
-    <label class="opt"><input type="radio" name="p" value="bin40"><div><b>40 Hz binaural</b><span>Headphones required: 200 Hz left, 240 Hz right</span></div></label>
-  </fieldset>
 
   <div class="row walkonly">
     <h2>Tempo</h2>
@@ -392,13 +380,12 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
     document.querySelectorAll('.walkonly').forEach(el => el.classList.toggle('hide', !pat.walk));
   }
 
-  document.querySelectorAll('input[name=p]').forEach(r => {
-    r.checked = r.value === pattern;
-    r.addEventListener('change', () => {
-      pattern = r.value; save('pattern', pattern);
-      if(running){ stopSound(); startSound(); }
-      updateNow();
-    });
+  const soundPicker = $('soundPicker');
+  soundPicker.value = pattern;
+  soundPicker.addEventListener('change', () => {
+    pattern = soundPicker.value; save('pattern', pattern);
+    if(running){ stopSound(); startSound(); }
+    updateNow();
   });
 
   document.querySelectorAll('input[name=sway]').forEach(r => {
