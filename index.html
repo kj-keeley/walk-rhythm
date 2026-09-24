@@ -32,8 +32,20 @@ body{
   font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
   font-weight:500; line-height:1.6;
 }
-main{max-width:520px; margin:0 auto; padding:20px 18px 40px}
+main{max-width:520px; min-height:100vh; min-height:100dvh; margin:0 auto; padding:20px 18px 40px; position:relative}
 h1{font-size:1.1rem; font-weight:700; margin:0 0 18px; color:var(--muted)}
+#settingsTrigger{
+  position:absolute; top:16px; right:18px; width:44px; height:44px;
+  border:0; background:transparent; opacity:0; cursor:default;
+  -webkit-touch-callout:none; -webkit-user-select:none; user-select:none;
+  touch-action:manipulation;
+}
+#settingsTrigger:focus-visible{opacity:1; outline:2px solid var(--ink)}
+#home .stage{padding-top:24px}
+#settingsHeader{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px}
+#settingsHeader h2{margin:0; font-size:1.3rem}
+#back{border:2px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink); font:inherit; font-weight:700; padding:10px 16px; cursor:pointer}
+[hidden]{display:none !important}
 .stage{display:flex; flex-direction:column; align-items:center; gap:14px; margin-bottom:28px}
 #go{
   width:min(64vw,240px); aspect-ratio:1; border-radius:50%; border:0;
@@ -96,19 +108,26 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
 </head>
 <body>
 <main>
-  <h1>Walking Rhythm (Prototype)</h1>
+  <h1>Walking Rhythm</h1>
+  <button id="settingsTrigger" type="button" aria-label="Hold to open settings" title="Hold to open settings"></button>
 
-  <div class="stage">
-    <button id="go" aria-pressed="false">Start</button>
-    <div id="now" aria-live="polite"></div>
+  <section id="home">
+    <div class="stage">
+      <button id="go" aria-pressed="false">Start</button>
+      <div id="now" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section id="settings" hidden>
+  <div id="settingsHeader">
+    <h2>Settings</h2>
+    <button id="back" type="button">Back</button>
   </div>
 
   <fieldset>
     <legend>For walking (use the speaker)</legend>
     <label class="opt"><input type="radio" name="p" value="click"><div><b>Basic click</b><span>A steady click to use as a baseline</span></div></label>
     <label class="opt"><input type="radio" name="p" value="accent"><div><b>Accented click</b><span>A higher, stronger sound every four steps</span></div></label>
-    <label class="opt"><input type="radio" name="p" value="marcato"><div><b>Tango marcato</b><span>Bandoneon and bass mark every step. Steps 1 and 3 are stronger.</span></div></label>
-    <label class="opt"><input type="radio" name="p" value="habanera"><div><b>Tango 3-3-2</b><span>A bouncing rhythm. Step to the soft swishing sound.</span></div></label>
   </fieldset>
 
   <fieldset>
@@ -144,29 +163,46 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
   </div>
 
   <p class="note">For the first few uses, have someone nearby. Start 40 Hz modes at a low volume.</p>
+  </section>
 </main>
 
 <script>
 (() => {
-  // chord progression: Am - Dm - E7 - Am (one bar each)
-  const PROG = [
-    {chord:[220.00,261.63,329.63], root:110.00, fifth:82.41},
-    {chord:[220.00,293.66,349.23], root:73.42,  fifth:110.00},
-    {chord:[246.94,293.66,415.30], root:82.41,  fifth:123.47},
-    {chord:[220.00,261.63,329.63], root:110.00, fifth:82.41}
-  ];
-
   const PATTERNS = {
     click:   {walk:true, label:'Basic click'},
     accent:  {walk:true, label:'Accented click'},
-    marcato: {walk:true, label:'Tango marcato'},
-    habanera:{walk:true, label:'Tango 3-3-2'},
     g40:     {walk:false, label:'40 Hz click'},
     bin40:   {walk:false, label:'40 Hz binaural'}
   };
 
   const $ = id => document.getElementById(id);
   const go = $('go'), now = $('now'), bpmEl = $('bpm'), volEl = $('vol');
+  const home = $('home'), settings = $('settings'), settingsTrigger = $('settingsTrigger');
+
+  function showSettings(){
+    home.hidden = true;
+    settings.hidden = false;
+    window.scrollTo(0, 0);
+  }
+  function showHome(){
+    settings.hidden = true;
+    home.hidden = false;
+    window.scrollTo(0, 0);
+  }
+  let settingsHold = null;
+  function startSettingsHold(){
+    clearTimeout(settingsHold);
+    settingsHold = setTimeout(() => { settingsHold = null; showSettings(); }, 1500);
+  }
+  function cancelSettingsHold(){ clearTimeout(settingsHold); settingsHold = null; }
+  settingsTrigger.addEventListener('pointerdown', e => { if(e.isPrimary && e.button === 0) startSettingsHold(); });
+  ['pointerup','pointercancel','pointerleave'].forEach(type => settingsTrigger.addEventListener(type, cancelSettingsHold));
+  settingsTrigger.addEventListener('contextmenu', e => e.preventDefault());
+  settingsTrigger.addEventListener('keydown', e => {
+    if(!e.repeat && (e.key === 'Enter' || e.key === ' ')) startSettingsHold();
+  });
+  settingsTrigger.addEventListener('keyup', cancelSettingsHold);
+  $('back').addEventListener('click', showHome);
 
   const load = (k, d) => { try { const v = localStorage.getItem('wr_'+k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } };
   const save = (k, v) => { try { localStorage.setItem('wr_'+k, JSON.stringify(v)); } catch(e){} };
@@ -175,7 +211,7 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
   let vol = load('vol',0.7);
   let swayLevel = load('sway',0); if(![0,1,2].includes(swayLevel)) swayLevel = 0;
 
-  let ctx, master, comp, noiseBuf, clickBuf;
+  let ctx, master, comp, clickBuf;
   let running = false, timerId = null, nextTime = 0, idx = 0, mult = 1;
   let cont = null, visQ = [], wakeLock = null;
 
@@ -190,10 +226,6 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
     master.connect(comp); comp.connect(ctx.destination);
 
     const sr = ctx.sampleRate;
-    noiseBuf = ctx.createBuffer(1, Math.floor(sr*0.05), sr);
-    const nd = noiseBuf.getChannelData(0);
-    for(let i=0;i<nd.length;i++) nd[i] = Math.random()*2-1;
-
     clickBuf = ctx.createBuffer(1, sr, sr);
     const cd = clickBuf.getChannelData(0);
     const pipLen = Math.floor(sr*0.001);
@@ -221,53 +253,8 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
     o.start(t); o.stop(t+dur+0.02);
   }
 
-  function noise(t, peak, dur, freq, type){
-    const n = ctx.createBufferSource(); n.buffer = noiseBuf;
-    const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(peak, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
-    n.connect(f); f.connect(g); g.connect(master);
-    n.start(t); n.stop(t+dur+0.01);
-  }
-
-  // reedy bellows chord: detuned saws through a nasal formant
-  function bandoneon(t, freqs, peak, dur){
-    const out = ctx.createGain();
-    out.gain.setValueAtTime(0.0001, t);
-    out.gain.exponentialRampToValueAtTime(peak, t+0.012);
-    out.gain.setValueAtTime(peak*0.8, t+dur*0.45);
-    out.gain.exponentialRampToValueAtTime(0.0001, t+dur);
-    const hp = ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=180;
-    const pk = ctx.createBiquadFilter(); pk.type='peaking'; pk.frequency.value=1400; pk.Q.value=1.2; pk.gain.value=9;
-    const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=3400;
-    hp.connect(pk); pk.connect(lp); lp.connect(out); out.connect(master);
-    for(const f of freqs){
-      for(const d of [-7, 7]){
-        const o = ctx.createOscillator(); o.type='sawtooth';
-        o.frequency.value = f; o.detune.value = d;
-        const og = ctx.createGain(); og.gain.value = 0.1;
-        o.connect(og); og.connect(hp);
-        o.start(t); o.stop(t+dur+0.03);
-      }
-    }
-  }
-
-  // plucked double bass, with harmonics so phone speakers carry it
-  function pizz(t, f, peak){
-    const g = ctx.createGain();
-    env(g, t, peak, 0.003, 0.32);
-    const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=750; lp.Q.value=2;
-    const s = ctx.createOscillator(); s.type='sawtooth'; s.frequency.value=f*2;
-    const o = ctx.createOscillator(); o.type='triangle'; o.frequency.value=f;
-    s.connect(lp); o.connect(lp); lp.connect(g); g.connect(master);
-    [s,o].forEach(x => { x.start(t); x.stop(t+0.36); });
-    noise(t, peak*0.5, 0.012, 2500, 'highpass'); // finger snap so the onset is sharp
-  }
-
   // ---- what plays on each eighth (8 per bar = 4 steps) ----
-  function playEighth(pos, bar, t){
-    const c = PROG[bar % PROG.length];
+  function playEighth(pos, t){
     switch(pattern){
       case 'click':
         if(pos%2===0) tone(t,1000,0.06,0.8);
@@ -275,19 +262,6 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
       case 'accent':
         if(pos===0) tone(t,1600,0.08,1.0);
         else if(pos%2===0) tone(t,1000,0.06,0.8);
-        break;
-      case 'marcato':
-        if(pos%2===0){
-          const beat = pos/2, strong = beat===0 || beat===2;
-          bandoneon(t, c.chord, strong ? 0.55 : 0.32, strong ? 0.24 : 0.15);
-          pizz(t, beat<2 ? c.root : c.fifth, strong ? 0.9 : 0.5);
-        }
-        break;
-      case 'habanera':
-        if(pos===0){ bandoneon(t, c.chord, 0.55, 0.26); pizz(t, c.root, 0.9); }
-        if(pos===3){ bandoneon(t, c.chord, 0.4, 0.18); pizz(t, c.fifth, 0.65); }
-        if(pos===6){ bandoneon(t, c.chord, 0.4, 0.18); pizz(t, c.root, 0.65); }
-        if(pos%2===0) noise(t, 0.35, 0.05, 3500, 'bandpass'); // soft step pulse
         break;
     }
   }
@@ -307,12 +281,12 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
 
   function scheduler(){
     while(nextTime < ctx.currentTime + 0.12){
-      const pos = idx % 8, bar = Math.floor(idx/8);
+      const pos = idx % 8;
       if(pos % 2 === 0){
         mult = swayMult(idx/2);
         visQ.push({t:nextTime, strong:pos===0});
       }
-      playEighth(pos, bar, nextTime);
+      playEighth(pos, nextTime);
       nextTime += (60/bpm/2) * mult;
       idx++;
     }
