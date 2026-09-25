@@ -45,9 +45,28 @@ h1{font-size:1.1rem; font-weight:700; margin:0 0 12px; color:var(--muted)}
 #soundChoice{display:flex; align-items:center; gap:12px; max-width:360px; margin:0 auto 12px; font-weight:700}
 #soundPicker{flex:1; min-width:0; min-height:48px; padding:8px 10px; border:2px solid var(--line); border-radius:12px; background:var(--surface); color:var(--ink); font:inherit; font-size:1rem}
 #soundPicker:focus-visible{outline:3px solid var(--teal); outline-offset:2px}
-#settingsHeader{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px}
-#settingsHeader h2{margin:0; font-size:1.3rem}
-#back{border:2px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink); font:inherit; font-weight:700; padding:10px 16px; cursor:pointer}
+#settingsHeader{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px}
+#settingsHeader h2{margin:0; font-size:1.15rem}
+#back{border:2px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink); font:inherit; font-size:.9rem; font-weight:700; padding:6px 12px; min-height:38px; cursor:pointer}
+body.settings-open h1, body.settings-open #settingsTrigger{display:none}
+#settings .row{padding:8px 12px; margin-bottom:7px}
+#settings .row h2{font-size:.9rem; line-height:1.2; margin:0 0 5px}
+#settings .tempo{gap:14px}
+#settings .tempo button{width:38px; height:38px; font-size:1.35rem}
+#settings #bpm{font-size:1.55rem; line-height:1.1}
+#settings .unit{font-size:.72rem; line-height:1}
+#settings #tap{margin-top:6px; padding:7px 8px; font-size:.82rem; line-height:1.2}
+#settings #tapinfo{min-height:0; margin-top:2px; font-size:.72rem; line-height:1.2}
+#settings .seg span{padding:7px 2px; font-size:.82rem; line-height:1.2}
+#settings .hint{font-size:.72rem; line-height:1.25; margin:4px 0 0}
+#settings input[type=range]{height:28px}
+#settings .freq-control{margin-bottom:3px}
+#settings .freq-control label, #volumeLabel{display:block; font-size:.8rem; font-weight:700; line-height:1.2}
+#settings .slider-line{display:flex; align-items:center; gap:8px}
+#settings .slider-line input{flex:1; min-width:0}
+#settings .slider-line output{min-width:64px; text-align:right; font-size:.82rem; font-variant-numeric:tabular-nums}
+#resetFrequency{display:block; margin:3px 0 6px auto; min-height:30px; padding:4px 10px; border:2px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:.8rem; font-weight:700; cursor:pointer}
+#settings .note{font-size:.7rem; line-height:1.2; margin:4px 0 0}
 [hidden]{display:none !important}
 .stage{display:flex; flex-direction:column; align-items:center; gap:14px; margin-bottom:28px}
 #go{
@@ -145,8 +164,28 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
     <p class="hint">The tempo shifts gently, like a human performance, with a brief pause every eight bars.</p>
   </div>
 
-  <div class="row">
-    <h2>Volume</h2>
+  <div class="row" id="soundRow">
+    <h2>Sound</h2>
+    <div class="freq-control" id="pitchControl">
+      <label for="pitch">Pitch</label>
+      <div class="slider-line"><input type="range" id="pitch" min="200" max="3000" step="10" value="1000"><output id="pitchValue" for="pitch">1000 Hz</output></div>
+    </div>
+    <div class="freq-control" id="pulseControl" hidden>
+      <label for="pulse">Pulse rate</label>
+      <div class="slider-line"><input type="range" id="pulse" min="20" max="60" step="1" value="40"><output id="pulseValue" for="pulse">40 Hz</output></div>
+    </div>
+    <div id="binauralControls" hidden>
+      <div class="freq-control">
+        <label for="beat">Beat</label>
+        <div class="slider-line"><input type="range" id="beat" min="20" max="60" step="1" value="40"><output id="beatValue" for="beat">40 Hz</output></div>
+      </div>
+      <div class="freq-control">
+        <label for="baseTone">Base tone</label>
+        <div class="slider-line"><input type="range" id="baseTone" min="100" max="500" step="5" value="200"><output id="baseToneValue" for="baseTone">200 Hz</output></div>
+      </div>
+    </div>
+    <button type="button" id="resetFrequency">Reset</button>
+    <label id="volumeLabel" for="vol">Volume</label>
     <input type="range" id="vol" min="0" max="1" step="0.01" value="0.7" aria-label="Volume">
   </div>
 
@@ -170,11 +209,13 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
   function showSettings(){
     home.hidden = true;
     settings.hidden = false;
+    document.body.classList.add('settings-open');
     window.scrollTo(0, 0);
   }
   function showHome(){
     settings.hidden = true;
     home.hidden = false;
+    document.body.classList.remove('settings-open');
     window.scrollTo(0, 0);
   }
   let settingsHold = null;
@@ -194,13 +235,25 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
 
   const load = (k, d) => { try { const v = localStorage.getItem('wr_'+k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } };
   const save = (k, v) => { try { localStorage.setItem('wr_'+k, JSON.stringify(v)); } catch(e){} };
+  const loadHz = (k, d, min, max) => {
+    const v = load(k, d);
+    return Number.isFinite(v) && v >= min && v <= max ? v : d;
+  };
   let pattern = load('pattern','click'); if(!PATTERNS[pattern]) pattern = 'click';
   let bpm = load('bpm',100);
   let vol = load('vol',0.7);
   let swayLevel = load('sway',0); if(![0,1,2].includes(swayLevel)) swayLevel = 0;
+  const pitchHz = {
+    click: loadHz('pitch_click', 1000, 200, 3000),
+    accent: loadHz('pitch_accent', 1000, 200, 3000)
+  };
+  let pulseHz = loadHz('pulse_g40', 40, 20, 60);
+  let beatHz = loadHz('beat_bin40', 40, 20, 60);
+  let baseHz = loadHz('base_bin40', 200, 100, 500);
 
   let ctx, master, comp, clickBuf;
   let running = false, timerId = null, nextTime = 0, idx = 0, mult = 1;
+  let futureTones = [];
   let cont = null, visQ = [], wakeLock = null;
 
   function ensureCtx(){
@@ -233,23 +286,32 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
     g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
   }
 
-  function tone(t, freq, dur, peak){
+  function tone(t, freq, dur, peak, ratio=1){
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.type = 'sine'; o.frequency.value = freq;
     env(g, t, peak, 0.004, dur);
     o.connect(g); g.connect(master);
     o.start(t); o.stop(t+dur+0.02);
+    futureTones.push({o, t, ratio});
+  }
+
+  function retuneFutureClicks(){
+    if(!ctx || !running || !PATTERNS[pattern].walk) return;
+    futureTones = futureTones.filter(note => note.t > ctx.currentTime);
+    for(const note of futureTones){
+      note.o.frequency.setValueAtTime(pitchHz[pattern]*note.ratio, note.t);
+    }
   }
 
   // ---- what plays on each eighth (8 per bar = 4 steps) ----
   function playEighth(pos, t){
     switch(pattern){
       case 'click':
-        if(pos%2===0) tone(t,1000,0.06,0.8);
+        if(pos%2===0) tone(t,pitchHz.click,0.06,0.8);
         break;
       case 'accent':
-        if(pos===0) tone(t,1600,0.08,1.0);
-        else if(pos%2===0) tone(t,1000,0.06,0.8);
+        if(pos===0) tone(t,pitchHz.accent*1.6,0.08,1.0,1.6);
+        else if(pos%2===0) tone(t,pitchHz.accent,0.06,0.8);
         break;
     }
   }
@@ -268,6 +330,7 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
   }
 
   function scheduler(){
+    futureTones = futureTones.filter(note => note.t > ctx.currentTime);
     while(nextTime < ctx.currentTime + 0.12){
       const pos = idx % 8;
       if(pos % 2 === 0){
@@ -286,19 +349,34 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
     g.gain.exponentialRampToValueAtTime(1, ctx.currentTime+1);
     g.connect(master);
     const nodes = [];
+    let pulseSource = null, leftOsc = null, rightOsc = null;
     if(pattern === 'g40'){
       const s = ctx.createBufferSource(); s.buffer = clickBuf; s.loop = true;
+      s.playbackRate.value = pulseHz/40;
       s.connect(g); s.start(); nodes.push(s);
+      pulseSource = s;
     } else {
       const merger = ctx.createChannelMerger(2);
-      [[200,0],[240,1]].forEach(([f,ch]) => {
+      [[baseHz,0],[baseHz+beatHz,1]].forEach(([f,ch]) => {
         const o = ctx.createOscillator(); o.type='sine'; o.frequency.value=f;
         const og = ctx.createGain(); og.gain.value = 0.35;
         o.connect(og); og.connect(merger, 0, ch); o.start(); nodes.push(o);
+        if(ch === 0) leftOsc = o; else rightOsc = o;
       });
       merger.connect(g);
     }
-    cont = {g, nodes};
+    cont = {g, nodes, pulseSource, leftOsc, rightOsc};
+  }
+
+  function updateContinuousFrequency(){
+    if(!cont || !ctx) return;
+    const t = ctx.currentTime;
+    if(pattern === 'g40' && cont.pulseSource){
+      cont.pulseSource.playbackRate.setTargetAtTime(pulseHz/40, t, 0.025);
+    } else if(pattern === 'bin40' && cont.leftOsc && cont.rightOsc){
+      cont.leftOsc.frequency.setTargetAtTime(baseHz, t, 0.025);
+      cont.rightOsc.frequency.setTargetAtTime(baseHz+beatHz, t, 0.025);
+    }
   }
 
   function stopContinuous(){
@@ -313,7 +391,7 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
 
   function startSound(){
     if(PATTERNS[pattern].walk){
-      idx = 0; mult = 1; nextTime = ctx.currentTime + 0.08; visQ = [];
+      idx = 0; mult = 1; nextTime = ctx.currentTime + 0.08; visQ = []; futureTones = [];
       scheduler();
       timerId = setInterval(scheduler, 25);
       go.classList.remove('steady');
@@ -326,7 +404,7 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
   function stopSound(){
     clearInterval(timerId); timerId = null;
     stopContinuous();
-    visQ = [];
+    visQ = []; futureTones = [];
     go.classList.remove('beat','beat-strong','steady');
   }
 
@@ -374,10 +452,31 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
   const SWAY_LABEL = ['steady','gentle variation','strong variation'];
   function updateNow(){
     const pat = PATTERNS[pattern];
-    now.textContent = running
-      ? (pat.walk ? `${pat.label} · ${bpm} steps/min · ${SWAY_LABEL[swayLevel]}` : pat.label + (pattern==='bin40' ? ' (headphones)' : ''))
-      : pat.label;
+    if(pat.walk){
+      now.textContent = running ? `${pat.label} · ${bpm} steps/min · ${SWAY_LABEL[swayLevel]}` : pat.label;
+    } else if(pattern === 'g40'){
+      now.textContent = `${pat.label} · ${pulseHz} Hz`;
+    } else {
+      now.textContent = `${pat.label} · Beat ${beatHz} Hz · Base ${baseHz} Hz`;
+    }
     document.querySelectorAll('.walkonly').forEach(el => el.classList.toggle('hide', !pat.walk));
+  }
+
+  function refreshFrequencyUI(){
+    const isPitch = pattern === 'click' || pattern === 'accent';
+    $('pitchControl').hidden = !isPitch;
+    $('pulseControl').hidden = pattern !== 'g40';
+    $('binauralControls').hidden = pattern !== 'bin40';
+    if(isPitch){
+      $('pitch').value = pitchHz[pattern];
+      $('pitchValue').textContent = `${pitchHz[pattern]} Hz`;
+    }
+    $('pulse').value = pulseHz;
+    $('pulseValue').textContent = `${pulseHz} Hz`;
+    $('beat').value = beatHz;
+    $('beatValue').textContent = `${beatHz} Hz`;
+    $('baseTone').value = baseHz;
+    $('baseToneValue').textContent = `${baseHz} Hz`;
   }
 
   const soundPicker = $('soundPicker');
@@ -385,7 +484,41 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
   soundPicker.addEventListener('change', () => {
     pattern = soundPicker.value; save('pattern', pattern);
     if(running){ stopSound(); startSound(); }
+    refreshFrequencyUI();
     updateNow();
+  });
+
+  $('pitch').addEventListener('input', e => {
+    pitchHz[pattern] = Number(e.target.value);
+    save(`pitch_${pattern}`, pitchHz[pattern]);
+    $('pitchValue').textContent = `${pitchHz[pattern]} Hz`;
+    retuneFutureClicks();
+  });
+  $('pulse').addEventListener('input', e => {
+    pulseHz = Number(e.target.value); save('pulse_g40', pulseHz);
+    $('pulseValue').textContent = `${pulseHz} Hz`;
+    updateContinuousFrequency(); updateNow();
+  });
+  $('beat').addEventListener('input', e => {
+    beatHz = Number(e.target.value); save('beat_bin40', beatHz);
+    $('beatValue').textContent = `${beatHz} Hz`;
+    updateContinuousFrequency(); updateNow();
+  });
+  $('baseTone').addEventListener('input', e => {
+    baseHz = Number(e.target.value); save('base_bin40', baseHz);
+    $('baseToneValue').textContent = `${baseHz} Hz`;
+    updateContinuousFrequency(); updateNow();
+  });
+  $('resetFrequency').addEventListener('click', () => {
+    if(pattern === 'click' || pattern === 'accent'){
+      pitchHz[pattern] = 1000; save(`pitch_${pattern}`, 1000);
+    } else if(pattern === 'g40'){
+      pulseHz = 40; save('pulse_g40', 40);
+    } else {
+      beatHz = 40; baseHz = 200;
+      save('beat_bin40', 40); save('base_bin40', 200);
+    }
+    refreshFrequencyUI(); retuneFutureClicks(); updateContinuousFrequency(); updateNow();
   });
 
   document.querySelectorAll('input[name=sway]').forEach(r => {
@@ -424,6 +557,7 @@ input[type=range]{width:100%; accent-color:var(--teal); height:28px}
   });
 
   bpmEl.textContent = bpm;
+  refreshFrequencyUI();
   updateNow();
 })();
 </script>
